@@ -90,7 +90,7 @@ def get_name(obj):
   return obj.__name__ if hasattr(obj, '__name__') else get_name(type(obj))
 
 
-PRIMITIVE_TYPES = (int, long, float, str, unicode, bool, type(None))
+PRIMITIVE_TYPES = (int, float, str, bool, type(None))
 
 def encode_primitive(dat):
   t = type(dat)

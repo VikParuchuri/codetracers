@@ -42,7 +42,7 @@ if is_python3:
     import io as StringIO
 else:
     import StringIO
-import pg_encoder
+from codetracers import pg_encoder
 
 
 # TODO: not threadsafe:
@@ -260,8 +260,7 @@ def visit_function_obj(v, ids_seen_set):
 
 
 class PGLogger(bdb.Bdb):
-    def __init__(self, cumulative_mode, heap_primitives, show_only_outputs, finalizer_func,
-                 disable_security_checks=False, crazy_mode=False):
+    def __init__(self, cumulative_mode, heap_primitives, show_only_outputs, disable_security_checks=False, crazy_mode=False):
         bdb.Bdb.__init__(self)
         self.mainpyfile = ''
         self._wait_for_mainpyfile = 0
@@ -282,10 +281,6 @@ class PGLogger(bdb.Bdb):
 
         # Run using the custom Py2crazy Python interpreter
         self.crazy_mode = crazy_mode
-
-        # a function that takes the output trace as a parameter and
-        # processes it
-        self.finalizer_func = finalizer_func
 
         # each entry contains a dict with the information for a single
         # executed line
@@ -1090,72 +1085,21 @@ class PGLogger(bdb.Bdb):
 
         self.trace = res
 
-        return self.finalizer_func(self.executed_script, self.trace)
-
-
-import json
+        return self.executed_script, self.trace
 
 # the MAIN meaty function!!!
-def exec_script_str(script_str, raw_input_lst_json, options_json, finalizer_func):
-    options = json.loads(options_json)
+def exec_script_str(script_str):
 
-    py_crazy_mode = ('py_crazy_mode' in options and options['py_crazy_mode'])
+    py_crazy_mode = False
 
-    logger = PGLogger(options['cumulative_mode'], options['heap_primitives'], options['show_only_outputs'],
-                      finalizer_func,
-                      crazy_mode=py_crazy_mode)
+    logger = PGLogger(False, False, False, crazy_mode=py_crazy_mode)
 
     # TODO: refactor these NOT to be globals
     global input_string_queue
     input_string_queue = []
-    if raw_input_lst_json:
-        # TODO: if we want to support unicode, remove str() cast
-        input_string_queue = [str(e) for e in json.loads(raw_input_lst_json)]
-
-    global __html__, __css__, __js__
-    __html__, __css__, __js__ = None, None, None
 
     try:
         logger._runscript(script_str)
-    except bdb.BdbQuit:
-        pass
-    finally:
-        logger.finalize()
-
-
-# disables security check and returns the result of finalizer_func
-# WARNING: ONLY RUN THIS LOCALLY and never over the web, since
-# security checks are disabled
-def exec_script_str_local(script_str, raw_input_lst_json, cumulative_mode, heap_primitives, finalizer_func):
-    # TODO: add py_crazy_mode option here too ...
-    logger = PGLogger(cumulative_mode, heap_primitives, False, finalizer_func, disable_security_checks=True)
-
-    # TODO: refactor these NOT to be globals
-    global input_string_queue
-    input_string_queue = []
-    if raw_input_lst_json:
-        # TODO: if we want to support unicode, remove str() cast
-        input_string_queue = [str(e) for e in json.loads(raw_input_lst_json)]
-
-    global __html__, __css__, __js__
-    __html__, __css__, __js__ = None, None, None
-
-    try:
-        logger._runscript(script_str)
-    except bdb.BdbQuit:
-        pass
-    finally:
-        return logger.finalize()
-
-
-def exec_str_with_user_ns(script_str, user_ns, finalizer_func):
-    logger = PGLogger(False, False, False, finalizer_func, disable_security_checks=True)
-
-    global __html__, __css__, __js__
-    __html__, __css__, __js__ = None, None, None
-
-    try:
-        logger._runscript(script_str, user_ns)
     except bdb.BdbQuit:
         pass
     finally:

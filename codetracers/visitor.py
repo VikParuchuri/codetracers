@@ -4,7 +4,7 @@ from ast import (fix_missing_locations, iter_fields, parse, Assign, AST,
 import sys
 import traceback
 
-from report_builder import ReportBuilder
+from codetracers.report_builder import ReportBuilder
 
 CONTEXT_NAME = '__live_coding_context__'
 RESULT_NAME = '__live_coding_result__'
