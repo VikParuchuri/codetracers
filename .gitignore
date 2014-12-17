@@ -1,0 +1,17 @@
+# Python-world detritus
+*.pyc
+build
+*.egg-info
+.coverage
+coverage.xml
+htmlcov
+
+# Editor detritus
+*~
+*.swp
+*.orig
+
+# OS detritus
+*.DS_Store
+*.idea/
+dist/*
