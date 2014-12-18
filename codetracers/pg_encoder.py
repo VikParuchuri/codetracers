@@ -70,6 +70,7 @@ FLOAT_PRECISION = 4
 
 from collections import defaultdict
 import re, types
+import inspect
 import math
 typeRE = re.compile("<type '(.*)'>")
 classRE = re.compile("<class '(.*)'>")
@@ -78,11 +79,11 @@ import inspect
 
 
 def is_class(dat):
-    return type(dat) in (types.ClassType, types.TypeType)
+    return inspect.isclass(dat)
 
 
 def is_instance(dat):
-    return type(dat) == types.InstanceType or classRE.match(str(type(dat)))
+    return '__dict__' in dir(dat) and type(dat) is not type
 
 
 def get_name(obj):

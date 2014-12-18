@@ -33,6 +33,7 @@ import bdb  # the KEY import here!
 import re
 import traceback
 import types
+import pickle
 
 # TODO: use the 'six' package to smooth out Py2 and Py3 differences
 is_python3 = (sys.version_info[0] == 3)
@@ -57,18 +58,6 @@ DEBUG = True
 BREAKPOINT_STR = '#break'
 
 CLASS_RE = re.compile('class\s+')
-
-
-# Support interactive user input by:
-#
-# 1. running the entire program up to a call to raw_input (or input in py3),
-# 2. bailing and returning a trace ending in a special 'raw_input' event,
-# 3. letting the web frontend issue a prompt to the user to grab a string,
-# 4. RE-RUNNING the whole program with that string added to input_string_queue,
-# 5. which should bring execution to the next raw_input call (if
-#    available), or to termination.
-# Repeat until no more raw_input calls are encountered.
-# Note that this is mad inefficient, but is simple to implement!
 
 # VERY IMPORTANT -- set random seed to 0 to ensure deterministic execution:
 import random
@@ -465,14 +454,7 @@ class PGLogger(bdb.Bdb):
         else:
             exc_type_name = exc_type.__name__
 
-        if exc_type_name == 'RawInputException':
-            self.trace.append(dict(event='raw_input', prompt=exc_value.args[0]))
-            self.done = True
-        elif exc_type_name == 'MouseInputException':
-            self.trace.append(dict(event='mouse_input', prompt=exc_value.args[0]))
-            self.done = True
-        else:
-            self.interaction(frame, exc_traceback, 'exception')
+        self.interaction(frame, exc_traceback, 'exception')
 
     def get_script_line(self, n):
         return self.executed_script_lines[n - 1]
@@ -1008,13 +990,6 @@ class PGLogger(bdb.Bdb):
             user_globals.update(custom_globals)
 
         try:
-            # enforce resource limits RIGHT BEFORE running script_str
-
-            # set ~200MB virtual memory limit AND a 5-second CPU time
-            # limit (tuned for Webfaction shared hosting) to protect against
-            # memory bombs such as:
-            #   x = 2
-            #   while True: x = x*x
 
             self.run(script_str, user_globals, user_globals)
         # sys.exit ...
@@ -1088,8 +1063,7 @@ class PGLogger(bdb.Bdb):
         return self.executed_script, self.trace
 
 # the MAIN meaty function!!!
-def exec_script_str(script_str):
-
+def exec_script_str(script_str, context):
     py_crazy_mode = False
 
     logger = PGLogger(False, False, False, crazy_mode=py_crazy_mode)
@@ -1098,8 +1072,11 @@ def exec_script_str(script_str):
     global input_string_queue
     input_string_queue = []
 
+    global __html__, __css__, __js__
+    __html__, __css__, __js__ = None, None, None
+
     try:
-        logger._runscript(script_str)
+        logger._runscript(script_str, custom_globals=context)
     except bdb.BdbQuit:
         pass
     finally:
