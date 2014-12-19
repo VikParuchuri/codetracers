@@ -796,7 +796,7 @@ class PGLogger(bdb.Bdb):
         # merge zombie_encoded_stack_locals and encoded_stack_locals
         # into one master ordered list using some simple rules for
         # making it look aesthetically pretty
-        stack_to_render = [];
+        stack_to_render = []
 
         # first push all regular stack entries
         if encoded_stack_locals:

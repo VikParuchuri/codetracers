@@ -76,6 +76,7 @@ typeRE = re.compile("<type '(.*)'>")
 classRE = re.compile("<class '(.*)'>")
 
 import inspect
+import json
 
 
 def is_class(dat):
@@ -133,6 +134,42 @@ def create_lambda_line_number(codeobj, line_to_lambda_code):
     return ' <line ' + lineno_str + '>'
   except:
     return ''
+
+def jsonable(v):
+    try:
+        val = json.dumps(v)
+    except Exception:
+        return False
+    if len(val) > 100:
+        return False
+    return True
+
+def stringable(v):
+    try:
+        m = str(v)
+    except Exception:
+        return False
+    if len(m) > 0 and len(m) < 100:
+        return True
+    return False
+
+def typeable(v):
+    try:
+        m = str(type(v))
+    except Exception:
+        return False
+    return True
+
+def get_display_var(v):
+    var = None
+    if jsonable(v):
+        var = v
+    elif stringable(v):
+        var = str(v)
+    elif typeable(v):
+        var = str(type(v))
+    var = json.loads(json.dumps(var))
+    return var
 
 
 # Note that this might BLOAT MEMORY CONSUMPTION since we're holding on
@@ -201,8 +238,10 @@ class ObjectEncoder:
         self.cur_small_ID += 1
 
       del my_id # to prevent bugs later in this function
+      val = get_display_var(dat)
 
-      ret = ['REF', my_small_id]
+      ret = ['REF', my_small_id, val]
+
 
       # punt early if you've already encoded this object
       if my_small_id in self.encoded_heap_objects:
@@ -217,11 +256,11 @@ class ObjectEncoder:
 
       if typ == list:
         new_obj.append('LIST')
-        for e in dat:
+        for e in dat[:10]:
           new_obj.append(self.encode(e, get_parent))
       elif typ == tuple:
         new_obj.append('TUPLE')
-        for e in dat:
+        for e in dat[:10]:
           new_obj.append(self.encode(e, get_parent))
       elif typ == set:
         new_obj.append('SET')
@@ -229,7 +268,11 @@ class ObjectEncoder:
           new_obj.append(self.encode(e, get_parent))
       elif typ == dict:
         new_obj.append('DICT')
+        counter = 0
         for (k, v) in dat.items():
+          counter += 1
+          if counter > 10:
+            continue
           # don't display some built-in locals ...
           if k not in ('__module__', '__return__', '__locals__'):
             new_obj.append([self.encode(k, get_parent), self.encode(v, get_parent)])
