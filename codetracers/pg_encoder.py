@@ -163,19 +163,14 @@ def typeable(v):
 
 def get_display_var(v):
     var = None
-    if isinstance(v, io.StringIO):
-        output = v.getvalue()
-        if "matplotlib" in output and "svg" in output:
-          var = output
-    if var is None:
-      if v is None or (isinstance(v, float) and math.isnan(v)):
-          var = "None"
-      elif jsonable(v):
-          var = v
-      elif stringable(v):
-          var = str(v)
-      elif typeable(v):
-          var = str(type(v))
+    if v is None or (isinstance(v, float) and math.isnan(v)):
+        var = "None"
+    elif jsonable(v):
+        var = v
+    elif stringable(v):
+        var = str(v)
+    elif typeable(v):
+        var = str(type(v))
     var = json.loads(json.dumps(var))
     return var
 

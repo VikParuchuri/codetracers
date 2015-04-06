@@ -82,7 +82,14 @@ def get_user_stdout(frame):
                                    if type(e) is str
                                    else e)
                                   for e in my_user_stdout.buflist]
-    return my_user_stdout.getvalue()
+    output =  my_user_stdout.getvalue()
+    output = output.split("\n")
+    new_output = []
+    for l in output:
+        if not l.startswith("DQ_PLOT:"):
+            new_output.append(l)
+    output = "\n".join(new_output)
+    return output
 
 
 '''
